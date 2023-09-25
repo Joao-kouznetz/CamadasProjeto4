@@ -54,18 +54,87 @@ def main():
 
 
         n_pacotes=10
-        mensagem1=[1,1,0,n_pacotes,0,1,0,0,0,170,187,204,221]
+        mensagem1=[1,1,0,n_pacotes,0,1,0,0,0,0,170,187,204,221]
         inicia=False
 
         while inicia==False:
-            if inicia==False:
-                mensagem1_bytes=bytes(mensagem1)
-                com1.sendData(mensagem1_bytes)
-                time.sleep(5)
-                
-                msg2bytes=com1.rx.getNData(14)
-                msg2=list(msg2bytes)
-                if msg2[0]==2 and msg2[5]==mensagem1[5]:
+            mensagem1_bytes=bytes(mensagem1)
+            com1.sendData(mensagem1_bytes)
+            time.sleep(5)
+            msg2bytes=com1.rx.getNData(14)
+            msg2=list(msg2bytes)
+            print("msg2", msg2)
+            if msg2[0]==2 and msg2[10]==170 and msg2[11]==187 and msg2[12]==204 and msg2[13]==221:
+                inicia=True
+                print("mensagem certa 2 recebida com sucesso")
+        print("Iniciar envio de pacotes")
+        cont=1
+        payload1=[1,2,3,4,5,6]*19
+        payload2=[2,2,3,4,5,6]*19
+        payload3=[3,2,3,4,5,6]*19
+        payload4=[4,2,3,4,5,6]*19
+        payload5=[5,2,3,4,5,6]*19
+        payload6=[6,2,3,4,5,6]*19
+        payload7=[7,2,3,4,5,6]*19
+        payload8=[8,2,3,4,5,6]*19
+        payload9=[9,2,3,4,5,6]*19
+        payload10=[2,2,2,2,2]*5
+        payloadt=[payload1,payload2,payload3,payload4,payload5,payload6,payload7,payload8,payload9,payload10]
+        recebido_sucesso=0
+        while cont<=n_pacotes:
+            mensagem3=[3,1,0,n_pacotes,cont,len(payloadt[(cont-1)]),0,recebido_sucesso,0,0]
+            for byte in payloadt[cont-1]:
+                mensagem3.append(byte)
+            mensagem3.append(170)
+            mensagem3.append(187)
+            mensagem3.append(204)
+            mensagem3.append(221)
+            mensagem3_bytes=bytes(mensagem3)
+            
+            
+            print("enviado pacote",cont)
+            com1.sendData(mensagem3_bytes)
+            time.sleep(0.1)
+            timer1=time.time()
+            timer2=time.time()
+            
+            recebeumsg4=False
+            while recebeumsg4==False:
+                while com1.rx.getIsEmpty():
+                    time.sleep(.1)
+                msg4bytes=com1.rx.getNData(14)
+
+                # print(msg4bytes,'bytesmsg4')
+                msg4=list(msg4bytes)
+                print('recebi',msg4)
+                if msg4[0]==4:
+                    recebeumsg4=True
+                    cont+=1
+                #se mensagem 4 n for 4
+                else:
+                    if time.time()-timer1>5:
+                        print("envia msg 3 no timer")
+                        com1.sendData(mensagem3_bytes)
+                        time.sleep(.1)
+                        timer1=time.time()
+                    if time.time()-timer2>20:
+                        print("envia msg t5")
+                    else:
+                        if msg4[0]==6:
+                            print("recebe msg t6")
+                            print("esse é o cont",cont)
+                            com1.sendData(mensagem3_bytes)
+                            time.sleep(.1)
+                            timer1=time.time()
+                            timer2=time.time
+                    
+
+
+
+
+
+
+
 
 
         # Encerra comunicação
