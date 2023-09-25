@@ -20,6 +20,7 @@ import numpy as np
 # se estiver usando windows, o gerenciador de dispositivos informa a porta
 
 #use uma das 3 opcoes para atribuir à variável a porta usada
+
 serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 # serialName = "COM3"                  # Windows(variacao de)
 
