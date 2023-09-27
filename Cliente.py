@@ -69,7 +69,9 @@ def main():
                 inicia=True
                 print("mensagem certa 2 recebida com sucesso")
         print("Iniciar envio de pacotes")
+        #mudar para alterar a mensagem        
         cont=1
+        
         payload1=[1,2,3,4,5,6]*19
         payload2=[2,2,3,4,5,6]*19
         payload3=[3,2,3,4,5,6]*19
@@ -82,6 +84,11 @@ def main():
         payload10=[2,2,2,2,2]*5
         payloadt=[payload1,payload2,payload3,payload4,payload5,payload6,payload7,payload8,payload9,payload10]
         recebido_sucesso=0
+        
+        
+        
+        
+        
         while cont<=n_pacotes:
             mensagem3=[3,1,0,n_pacotes,cont,len(payloadt[(cont-1)]),0,recebido_sucesso,0,0]
             for byte in payloadt[cont-1]:
@@ -94,40 +101,39 @@ def main():
             
             
             print("enviado pacote",cont)
+            print('mensagem normal', mensagem3)
             com1.sendData(mensagem3_bytes)
             time.sleep(0.1)
             timer1=time.time()
             timer2=time.time()
             
             recebeumsg4=False
-            while recebeumsg4==False:
-                while com1.rx.getIsEmpty():
-                    time.sleep(.1)
-                msg4bytes=com1.rx.getNData(14)
+            while recebeumsg4==False :
 
-                # print(msg4bytes,'bytesmsg4')
-                msg4=list(msg4bytes)
-                print('recebi',msg4)
-                if msg4[0]==4:
-                    recebeumsg4=True
-                    cont+=1
-                #se mensagem 4 n for 4
-                else:
-                    if time.time()-timer1>5:
-                        print("envia msg 3 no timer")
-                        com1.sendData(mensagem3_bytes)
-                        time.sleep(.1)
-                        timer1=time.time()
-                    if time.time()-timer2>20:
-                        print("envia msg t5")
+                if time.time()-timer2>20:
+                    print("envia mensagem t5")
+                    sys.exit()
+
+                if time.time()-timer1>5:
+                    print("envia pacote anterior")
+                    timer1=time.time()
+
+                timer1=time.time()
+                if com1.rx.getBufferLen()>=14:
+                    msg4bytes=com1.rx.getNData(14)
+                    msg4=list(msg4bytes)
+                    print('recebi',msg4)
+                    if msg4[0]==4:
+                        recebeumsg4=True
+                        cont=cont+1
+                    
                     else:
                         if msg4[0]==6:
-                            print("recebe msg t6")
-                            print("esse é o cont",cont)
-                            com1.sendData(mensagem3_bytes)
+                            print("recebeu msg t6")
+                            cont=msg4[6]
                             time.sleep(.1)
                             timer1=time.time()
-                            timer2=time.time
+                            timer2=time.time()
                     
 
 
