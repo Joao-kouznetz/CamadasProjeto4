@@ -5,6 +5,7 @@
 #Aplicação
 ####################################################
 
+# sudo chmod 777 /dev/ttyACM0
 
 #esta é a camada superior, de aplicação do seu software de comunicação serial UART.
 #para acompanhar a execução e identificar erros, construa prints ao longo do código! 
