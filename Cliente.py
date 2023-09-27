@@ -115,10 +115,10 @@ def main():
                     sys.exit()
 
                 if time.time()-timer1>5:
+                    recebeumsg4=True
                     print("envia pacote anterior")
                     timer1=time.time()
 
-                timer1=time.time()
                 if com1.rx.getBufferLen()>=14:
                     msg4bytes=com1.rx.getNData(14)
                     msg4=list(msg4bytes)
