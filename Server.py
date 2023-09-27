@@ -14,6 +14,7 @@
 from enlace import *
 import time
 import numpy as np
+import sys
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
 #   para saber a sua porta, execute no terminal :
@@ -79,98 +80,111 @@ def main():
         print('mensagem t2 enviada')
             
         cont = 1
-        msgt3 = False
+        recebi_msgt3 = False
         pckgOK = False
+        n_pacote = 0
+        conteudo_total = []
 
+        # with open('exemplo.txt', 'w') as arquivo:
+        #     pass
+        
         while cont <= numPckg:
             timer1 = time.time()
             timer2 = time.time()
 
-            # print('COMECAONDO A RECEBER UM PACOTE')
-            # print('timer1', time.time() - timer1)
-            # print('timer2', time.time() - timer2)
-
-            while (time.time() - timer2) < 20 and msgt3 == False:
-                while (time.time() - timer1) < 2 and msgt3 == False:   
-                    #RECEBENDO O HEAD
-                    rxBuffer = com1.rx.getNData(10)
-            
-                    decimal_values = []
-                    for byte in rxBuffer:
-                        decimal_values.append(byte)
-
-                    if decimal_values[0] == 3 and decimal_values[1] == 1:
-                        numPckg = decimal_values[3]
-                        n_pacote = decimal_values[4]
-                        payload = decimal_values[5]
-                        ultimo_pacode =decimal_values[7]
-                        print("recebeu {} bytes na head, numero pacore: {}".format(len(rxBuffer), n_pacote))
-
-                        #RECEBENDO PAYLOAD
-                        rxBuffer = com1.rx.getNData(payload)
-                        print("recebeu {} bytes no payload, numero do pacote: {}" .format(len(rxBuffer), n_pacote))
-
-                        decimal_values = []
-                        for byte in rxBuffer:
-                            decimal_values.append(byte)
-
-                        conteudo_pacote = decimal_values
-                        print('payload', conteudo_pacote)
-
-                        #RECEBENDO EOP
-                        rxBuffer = com1.rx.getNData(4)
-                        print("recebeu {} bytes no EOP, numero do pacote: {}" .format(len(rxBuffer), n_pacote))    
-
-                        decimal_values = []
-                        for byte in rxBuffer:
-                            decimal_values.append(byte) 
-
-                        if decimal_values[0] == 170 and decimal_values[1] == 187 and decimal_values[2] == 204 and decimal_values[3] == 221:
-                            msgt3 = True
-                            print('enviando que msg t3 foi recebita c sucesso')
-                            pckgOK = True 
-                            timer1 = time.time()
-
-                        else:
-                            msgt3 = False
-                            pckgOK = False
-                    
-                    else:
-                        msgt3 = False
-                        pckgOK = False
-
-            if time.time() - timer2 > 20 and msgt3 == False:
-                osioso = True 
-                msgt5 = [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 170, 187, 204, 221]
-                com1.sendData(np.asarray(msgt5))
-                time.sleep(.1) 
-                print("-------------------------")
-                print("Comunicação encerrada")
-                print("-------------------------")
-                com1.disable()
-            else:
-                if pckgOK:
-                    print('msg4 enviada')
-                    msgt4 = [4, 0, 0, 0, 0, 0, 0, n_pacote, 0, 0, 170, 187, 204, 221]
-                    print(np.asarray(msgt4))
-                    com1.sendData(bytes(msgt4))
-                    time.sleep(.1)
-                    msgt3 = False
-                    cont += 1
+            com1.rx.clearBuffer()
+            while recebi_msgt3 == False:
+                time.sleep(1)
+                if time.time() - timer2 > 20:
+                    ocioso == True
+                    msgt5 = [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 170, 187, 204, 221]
+                    com1.sendData(np.asarray(msgt5))
+                    time.sleep(.1) 
+                    print("-------------------------")
+                    print("Comunicação encerrada")
+                    print("-------------------------")
+                    com1.disable()
+                    sys.exit()
                 else:
-                    print('msg6 enviada e pckgOK:', pckgOK)
-                    msgt6 = [6, 0, 0, 0, 0, 0, n_pacote, 0, 0, 0, 170, 187, 204, 221]
-                    com1.sendData(np.asarray(msgt6))
-                    time.sleep(.1)
-                    msgt3 = False
+                    if (time.time() - timer1) > 5:
+                        print('passou 2 segundos mandei t4 errado')
+                        msgt4 = [4, 0, 0, 0, 0, 0, 0, n_pacote, 0, 0, 170, 187, 204, 221]
+                        com1.sendData(bytes(msgt4))
+                        time.sleep(.1)
+                        com1.rx.clearBuffer()
+                        timer1 = time.time()
 
+                #RECEBENDO HEAD
+                if com1.rx.getBufferLen() >= 10:
+                    
+                    rxBuffer = com1.rx.getNData(10)
 
+                    head_msgt3 = []
+                    for byte in rxBuffer:
+                        head_msgt3.append(byte)
 
+                    print(' revebi o head:', head_msgt3)
+                    
+                    if head_msgt3[0] == 3:
+                        recebi_msgt3 = True
+                    else:
+                        com1.rx.clearBuffer()
 
+            payload = head_msgt3[5]
+            print('payload:', payload, 'getbuferlen', com1.rx.getBufferLen())
+            if payload == com1.rx.getBufferLen() - 4 and head_msgt3[4] == n_pacote+1:  
+                print("recebeu {} bytes na head, numero pacore: {}".format(len(rxBuffer), n_pacote))
 
+                #RECEBENDO PAYLOAD
+                rxBuffer = com1.rx.getNData(payload)
+                print("recebeu {} bytes no payload, numero do pacote: {}" .format(len(rxBuffer), n_pacote))
 
+                payload_msgt3 = []
+                for byte in rxBuffer:
+                    payload_msgt3.append(byte)
 
+                conteudo_pacote = payload_msgt3
+                print('payload', conteudo_pacote)
 
+                #RECEBENDO EOP
+                rxBuffer = com1.rx.getNData(4)
+                print("recebeu {} bytes no EOP, numero do pacote: {}" .format(len(rxBuffer), n_pacote))    
+
+                EOP_msgt3 = []
+                for byte in rxBuffer:
+                    EOP_msgt3.append(byte) 
+
+                if EOP_msgt3[0] == 170 and EOP_msgt3[1] == 187 and EOP_msgt3[2] == 204 and EOP_msgt3[3] == 221:
+                    print(f'{n_pacote} recebido c sucesso')
+                    pckgOK = True 
+                    timer1 = time.time()
+                else:
+                    pckgOK = False
+            else:
+                pckgOK = False
+
+            if pckgOK == False:
+                com1.rx.clearBuffer()
+                print('enviei msgt6')
+                msgt6 = [6, 0, 0, 0, 0, 0, n_pacote, 0, 0, 0, 170, 187, 204, 221]    
+                com1.sendData(bytes(msgt6))
+                time.sleep(.1)
+                recebi_msgt3 = False
+                pckgOK = False 
+            else:
+                numPckg = head_msgt3[3]
+                n_pacote = head_msgt3[4]
+                print('enviei msgt4')
+                msgt4 = [4, 0, 0, 0, 0, 0, 0, n_pacote, 0, 0, 170, 187, 204, 221]
+                com1.sendData(bytes(msgt4))
+                time.sleep(.1)
+                cont += 1
+                recebi_msgt3 = False
+                pckgOK = False
+                for i in conteudo_pacote:
+                    conteudo_total.append(i)
+            
+        print('payload completo', conteudo_total)
 
         # Encerra comunicação
         print("-------------------------")
