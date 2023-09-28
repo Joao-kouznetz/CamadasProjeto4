@@ -17,6 +17,7 @@ import time
 import numpy as np
 from random import *
 import sys
+import datetime
 
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
@@ -58,16 +59,28 @@ def main():
         mensagem1=[1,1,0,n_pacotes,0,1,0,0,0,0,170,187,204,221]
         inicia=False
 
+        #criando arquivo
+        nomearquivo="Client4.txt"
+        with open(str(nomearquivo),"w") as arquivo:
+            pass
+            
+        mandoudenovo=False
         while inicia==False:
             mensagem1_bytes=bytes(mensagem1)
             com1.sendData(mensagem1_bytes)
-            time.sleep(5)
+            with open(str(nomearquivo),"a") as arquivo:
+                arquivo.write(str(datetime.datetime.now())+ " / envio"+ "/ " + "1"+ " / " +str(len(mensagem1_bytes))+ "\n")
+
+            time.sleep(2)
             msg2bytes=com1.rx.getNData(14)
             msg2=list(msg2bytes)
             print("msg2", msg2)
             if msg2[0]==2 and msg2[10]==170 and msg2[11]==187 and msg2[12]==204 and msg2[13]==221:
                 inicia=True
+                with open(str(nomearquivo),"a") as arquivo:
+                    arquivo.write(str(datetime.datetime.now())+ " / receb"+ "/ " + "2"+ " / " +str(len(msg2bytes))+ "\n")
                 print("mensagem certa 2 recebida com sucesso")
+
         print("Iniciar envio de pacotes")
         #mudar para alterar a mensagem        
         cont=1
@@ -103,46 +116,60 @@ def main():
             print("enviado pacote",cont)
             print('mensagem normal', mensagem3)
             com1.sendData(mensagem3_bytes)
+            
+
+            with open(str(nomearquivo),"a") as arquivo:
+                arquivo.write(str(datetime.datetime.now())+ " / envio"+ "/ " + "3"+ " / " +str(len(mensagem3_bytes))+ " / " + str(cont)+ " / "+ str(mensagem3[3])+ "\n")
+            
             time.sleep(0.1)
             timer1=time.time()
-            timer2=time.time()
+            if mandoudenovo==False:
+                timer2=time.time()
             
             recebeumsg4=False
             while recebeumsg4==False :
-
-                if time.time()-timer2>20:
+                print(time.time()-timer2)
+                if (time.time()-timer2)>20:
                     print("envia mensagem t5")
+                    mensagem5=[5,0,0,0,0,0,0,0,0,0,170,187,204,221]
+                    mensagem5_bytes=bytes(mensagem5)
+                    mandoudenovo=False
+                    com1.sendData(mensagem5_bytes)
+                    with open(str(nomearquivo),"a") as arquivo:
+                        arquivo.write(str(datetime.datetime.now())+ " / envio"+ "/ " + "5"+ " / " +str(len(mensagem5_bytes))+ "\n")
+                    com1.disable()
                     sys.exit()
 
-                if time.time()-timer1>5:
+                if (time.time()-timer1)>8:
                     recebeumsg4=True
                     print("envia pacote anterior")
+                    mandoudenovo=True
                     timer1=time.time()
 
-                if com1.rx.getBufferLen()>=14:
+                if com1.rx.getBufferLen()>=13:
+                    
                     msg4bytes=com1.rx.getNData(14)
                     msg4=list(msg4bytes)
                     print('recebi',msg4)
                     if msg4[0]==4:
+                        with open(str(nomearquivo),"a") as arquivo:
+                            arquivo.write(str(datetime.datetime.now())+ " / recebi"+ "/ " + "4"+ " / " +str(len(msg4bytes)) + "\n")
+
                         recebeumsg4=True
-                        cont=cont+1
+                        cont+=1
                     
                     else:
                         if msg4[0]==6:
+                            recebeumsg4=True
+                            with open(str(nomearquivo),"a") as arquivo:
+                                arquivo.write(str(datetime.datetime.now())+ " / recebi"+ "/ " + "6"+ " / " +str(len(msg4bytes)) + "\n")
+
                             print("recebeu msg t6")
-                            cont=msg4[6]
-                            time.sleep(.1)
-                            timer1=time.time()
-                            timer2=time.time()
+                            cont=msg4[6]+1
+                            print("mudei o cont para", cont)
+                            time.sleep(0.1)
+
                     
-
-
-
-
-
-
-
-
 
         # Encerra comunicação
         print("-------------------------")
