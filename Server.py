@@ -61,7 +61,7 @@ def main():
         #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print("Abriu a comunicação")
         
-        nome_txt = 'exemplo.txt'
+        nome_txt = 'server04.txt'
 
         with open(nome_txt, 'w') as arquivo:
             pass
@@ -188,8 +188,9 @@ def main():
                 for byte in rxBuffer:
                     EOP_msgt3.append(byte) 
 
+                crc = calculate_crc(payload_msgt3)
                 with open(nome_txt, 'a') as arquivo:
-                    arquivo.write(f'{datetime.datetime.now()} / receb / {head_msgt3[0]} / {len(head_msgt3) + len(payload_msgt3) + len(EOP_msgt3)} / {head_msgt3[4]} / {head_msgt3[3]}\n')
+                    arquivo.write(f'{datetime.datetime.now()} / receb / {head_msgt3[0]} / {len(head_msgt3) + len(payload_msgt3) + len(EOP_msgt3)} / {head_msgt3[4]} / {head_msgt3[3]} / {crc}\n')
 
                 if EOP_msgt3[0] == 170 and EOP_msgt3[1] == 187 and EOP_msgt3[2] == 204 and EOP_msgt3[3] == 221:
                     print(f'{n_pacote} recebido c sucesso')
@@ -224,6 +225,15 @@ def main():
                 pckgOK = False
                 crc_calculado = calculate_crc(conteudo_pacote)
                 print('CRC CALCULADO:', crc_calculado, '<-----------------------------------------------------------------------------------------------------')
+                if crc_calculado[0] != head_msgt3[8] or crc_calculado[1] != head_msgt3[9]:
+                    print('payload foi corrompido')
+                    print("-------------------------")
+                    print("Comunicação encerrada")
+                    print("-------------------------")
+                    com1.disable()
+                    sys.exit()
+                else:
+                    print('CRC ESTA BATENDO')
                 for i in conteudo_pacote:
                     conteudo_total.append(i)
             
