@@ -18,6 +18,7 @@ import numpy as np
 from random import *
 import sys
 import datetime
+import crcmod
 
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
@@ -29,6 +30,24 @@ import datetime
 serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
 # serialName = "COM3"                  # Windows(variacao de)
+
+def calculate_crc(data):
+    # Crie uma função CRC com os parâmetros apropriados para o seu polinômio CRC
+    crc_fun = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0xFFFF)
+    
+    # Converta a lista de bytes em uma representação de bytes
+    data_bytes = bytes(data)
+    
+    # Calcule o CRC dos dados
+    crc_value = crc_fun(data_bytes)
+    
+    # Converta o valor CRC de volta para uma lista de bytes
+    crc_bytes = crc_value.to_bytes(2, byteorder='little')
+    
+    # Converta os bytes do CRC em uma lista de inteiros
+    crc_list = list(crc_bytes)
+    
+    return crc_list
 
 
 
@@ -60,7 +79,7 @@ def main():
         inicia=False
 
         #criando arquivo
-        nomearquivo="Client4.txt"
+        nomearquivo="Clientcalculacrc.txt"
         with open(str(nomearquivo),"w") as arquivo:
             pass
             
@@ -98,12 +117,21 @@ def main():
         payloadt=[payload1,payload2,payload3,payload4,payload5,payload6,payload7,payload8,payload9,payload10]
         recebido_sucesso=0
         
-        
-        
+        crc1=calculate_crc(payload1)
+        crc2=calculate_crc(payload2)
+        crc3=calculate_crc(payload3)
+        crc4=calculate_crc(payload4)
+        crc5=calculate_crc(payload5)
+        crc6=calculate_crc(payload6)
+        crc7=calculate_crc(payload7)
+        crc8=calculate_crc(payload8)
+        crc9=calculate_crc(payload9)
+        crc10=calculate_crc(payload10)
+        crct=[crc1,crc2,crc3,crc4,crc5,crc6,crc7,crc8,crc9,crc10]
         
         
         while cont<=n_pacotes:
-            mensagem3=[3,1,0,n_pacotes,cont,len(payloadt[(cont-1)]),0,recebido_sucesso,0,0]
+            mensagem3=[3,1,0,n_pacotes,cont,len(payloadt[(cont-1)]),0,recebido_sucesso,crct[cont-1][0],crct[cont-1][1]]
             for byte in payloadt[cont-1]:
                 mensagem3.append(byte)
             mensagem3.append(170)
@@ -119,7 +147,7 @@ def main():
             
 
             with open(str(nomearquivo),"a") as arquivo:
-                arquivo.write(str(datetime.datetime.now())+ " / envio"+ "/ " + "3"+ " / " +str(len(mensagem3_bytes))+ " / " + str(cont)+ " / "+ str(mensagem3[3])+ "\n")
+                arquivo.write(str(datetime.datetime.now())+ " / envio"+ "/ " + "3"+ " / " +str(len(mensagem3_bytes))+ " / " + str(cont)+ " / "+ str(mensagem3[3])+ " / " + str(crct[cont-1])+ "\n")
             
             time.sleep(0.1)
             timer1=time.time()
@@ -128,7 +156,6 @@ def main():
             
             recebeumsg4=False
             while recebeumsg4==False :
-                print(time.time()-timer2)
                 if (time.time()-timer2)>20:
                     print("envia mensagem t5")
                     mensagem5=[5,0,0,0,0,0,0,0,0,0,170,187,204,221]
