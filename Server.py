@@ -15,6 +15,9 @@ from enlace import *
 import time
 import numpy as np
 import sys
+import datetime
+import crcmod
+
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
 #   para saber a sua porta, execute no terminal :
@@ -25,6 +28,24 @@ import sys
 
 serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 # serialName = "COM3"                  # Windows(variacao de)
+
+def calculate_crc(data):
+    # Crie uma função CRC com os parâmetros apropriados para o seu polinômio CRC
+    crc_fun = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0xFFFF)
+    
+    # Converta a lista de bytes em uma representação de bytes
+    data_bytes = bytes(data)
+    
+    # Calcule o CRC dos dados
+    crc_value = crc_fun(data_bytes)
+    
+    # Converta o valor CRC de volta para uma lista de bytes
+    crc_bytes = crc_value.to_bytes(2, byteorder='little')
+    
+    # Converta os bytes do CRC em uma lista de inteiros
+    crc_list = list(crc_bytes)
+    
+    return crc_list
 
 
 def main():
@@ -39,6 +60,11 @@ def main():
         com1.enable()
         #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print("Abriu a comunicação")
+        
+        nome_txt = 'exemplo.txt'
+
+        with open(nome_txt, 'w') as arquivo:
+            pass
         
         print("esperando 1 byte de sacrifício")
         rxBuffer, nRx = com1.getData(1)
@@ -57,6 +83,9 @@ def main():
         decimal_values = []
         for byte in rxBuffer:
             decimal_values.append(byte)
+
+        with open(nome_txt, 'a') as arquivo:
+            arquivo.write(f'{datetime.datetime.now()} / receb / {decimal_values[0]} / {len(decimal_values)}\n')
 
         ocioso = True
     
@@ -77,6 +106,9 @@ def main():
         msgt2 = bytearray([2,0,0,0,0,0,0,0,0,0,170,187,204,221])
         com1.sendData(np.asarray(msgt2))
         time.sleep(.1) 
+        with open(nome_txt, 'a') as arquivo:
+            arquivo.write(f'{datetime.datetime.now()} / envio / 2 / {len(msgt2)}\n')
+
         print('mensagem t2 enviada')
             
         cont = 1
@@ -84,9 +116,6 @@ def main():
         pckgOK = False
         n_pacote = 0
         conteudo_total = []
-
-        # with open('exemplo.txt', 'w') as arquivo:
-        #     pass
         
         while cont <= numPckg:
             timer1 = time.time()
@@ -100,6 +129,9 @@ def main():
                     msgt5 = [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 170, 187, 204, 221]
                     com1.sendData(np.asarray(msgt5))
                     time.sleep(.1) 
+                    with open(nome_txt, 'a') as arquivo:
+                        arquivo.write(f'{datetime.datetime.now()} / envio / 5 / {len(msgt5)}\n')
+                    print('Passou 20 segundos')
                     print("-------------------------")
                     print("Comunicação encerrada")
                     print("-------------------------")
@@ -111,7 +143,9 @@ def main():
                         msgt4 = [4, 0, 0, 0, 0, 0, 0, n_pacote, 0, 0, 170, 187, 204, 221]
                         com1.sendData(bytes(msgt4))
                         time.sleep(.1)
-                        com1.rx.clearBuffer()
+                        with open(nome_txt, 'a') as arquivo:
+                            arquivo.write(f'{datetime.datetime.now()} / envio / 4 / {len(msgt4)}\n')
+                        com1.rx.clearBuffer()                            
                         timer1 = time.time()
 
                 #RECEBENDO HEAD
@@ -154,6 +188,9 @@ def main():
                 for byte in rxBuffer:
                     EOP_msgt3.append(byte) 
 
+                with open(nome_txt, 'a') as arquivo:
+                    arquivo.write(f'{datetime.datetime.now()} / receb / {head_msgt3[0]} / {len(head_msgt3) + len(payload_msgt3) + len(EOP_msgt3)} / {head_msgt3[4]} / {head_msgt3[3]}\n')
+
                 if EOP_msgt3[0] == 170 and EOP_msgt3[1] == 187 and EOP_msgt3[2] == 204 and EOP_msgt3[3] == 221:
                     print(f'{n_pacote} recebido c sucesso')
                     pckgOK = True 
@@ -169,6 +206,8 @@ def main():
                 msgt6 = [6, 0, 0, 0, 0, 0, n_pacote, 0, 0, 0, 170, 187, 204, 221]    
                 com1.sendData(bytes(msgt6))
                 time.sleep(.1)
+                with open(nome_txt, 'a') as arquivo:
+                    arquivo.write(f'{datetime.datetime.now()} / envio / 6 / {len(msgt6)}\n')
                 recebi_msgt3 = False
                 pckgOK = False 
             else:
@@ -178,9 +217,13 @@ def main():
                 msgt4 = [4, 0, 0, 0, 0, 0, 0, n_pacote, 0, 0, 170, 187, 204, 221]
                 com1.sendData(bytes(msgt4))
                 time.sleep(.1)
+                with open(nome_txt, 'a') as arquivo:
+                    arquivo.write(f'{datetime.datetime.now()} / envio / 4 / {len(msgt4)}\n')
                 cont += 1
                 recebi_msgt3 = False
                 pckgOK = False
+                crc_calculado = calculate_crc(conteudo_pacote)
+                print('CRC CALCULADO:', crc_calculado, '<-----------------------------------------------------------------------------------------------------')
                 for i in conteudo_pacote:
                     conteudo_total.append(i)
             
